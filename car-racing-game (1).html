@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8비트 스타일 카레이싱 게임</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+        }
+        #startButton {
+            position: absolute;
+            font-size: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <button id="startButton">게임 시작</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+
+        // 게임 상태
+        let gameLoop;
+        let carX = canvas.width / 2;
+        let carY = 550;
+        let carSpeed = 0;
+        let score = 0;
+        let obstacles = [];
+        let isGameRunning = false;
+
+        // 8비트 스타일 자동차 그리기 함수
+        function drawCar(x, y, color) {
+            ctx.fillStyle = color;
+            // 차체
+            ctx.fillRect(x - 15, y, 30, 40);
+            // 앞유리
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(x - 10, y + 5, 20, 10);
+            // 바퀴
+            ctx.fillStyle = '#333';
+            ctx.fillRect(x - 18, y + 5, 6, 10);
+            ctx.fillRect(x + 12, y + 5, 6, 10);
+            ctx.fillRect(x - 18, y + 25, 6, 10);
+            ctx.fillRect(x + 12, y + 25, 6, 10);
+        }
+
+        // 차량 제어
+        document.addEventListener('keydown', (e) => {
+            if (!isGameRunning) return;
+            if (e.key === 'ArrowLeft') carSpeed = -3;
+            if (e.key === 'ArrowRight') carSpeed = 3;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (!isGameRunning) return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') carSpeed = 0;
+        });
+
+        // 장애물 생성
+        function createObstacle() {
+            obstacles.push({
+                x: Math.random() * (canvas.width - 30),
+                y: 0,
+                width: 30,
+                height: 30
+            });
+        }
+
+        // 게임 로직 업데이트
+        function update() {
+            score++;
+            
+            // 차량 이동
+            carX += carSpeed;
+            if (carX < 20) carX = 20;
+            if (carX > canvas.width - 20) carX = canvas.width - 20;
+            
+            // 장애물 이동
+            obstacles.forEach(obs => obs.y += 5);
+            
+            // 화면 밖으로 나간 장애물 제거
+            obstacles = obstacles.filter(obs => obs.y < canvas.height);
+            
+            // 충돌 검사
+            obstacles.forEach(obs => {
+                if (carX - 15 < obs.x + obs.width &&
+                    carX + 15 > obs.x &&
+                    carY < obs.y + obs.height &&
+                    carY + 40 > obs.y) {
+                    gameOver();
+                }
+            });
+
+            // 새 장애물 생성
+            if (Math.random() < 0.02) createObstacle();
+        }
+
+        // 게임 화면 그리기
+        function draw() {
+            // 배경
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 플레이어 차량
+            drawCar(carX, carY, 'blue');
+            
+            // 장애물
+            ctx.fillStyle = 'red';
+            obstacles.forEach(obs => drawCar(obs.x + 15, obs.y, 'red'));
+            
+            // 점수
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`점수: ${score}`, 10, 30);
+        }
+
+        // 게임 오버
+        function gameOver() {
+            isGameRunning = false;
+            clearInterval(gameLoop);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '30px Arial';
+            ctx.fillText('게임 오버!', canvas.width/2 - 70, canvas.height/2);
+            ctx.fillText(`최종 점수: ${score}`, canvas.width/2 - 80, canvas.height/2 + 40);
+            startButton.style.display = 'block';
+        }
+
+        // 게임 시작
+        function startGame() {
+            isGameRunning = true;
+            carX = canvas.width / 2;
+            carY = 550;
+            carSpeed = 0;
+            score = 0;
+            obstacles = [];
+            startButton.style.display = 'none';
+            gameLoop = setInterval(() => {
+                update();
+                draw();
+            }, 1000 / 60); // 60 FPS
+        }
+
+        // 초기 화면 그리기
+        function drawInitialScreen() {
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'black';
+            ctx.font = '30px Arial';
+            ctx.fillText('8비트 카레이싱', canvas.width/2 - 100, canvas.height/2 - 20);
+            ctx.font = '20px Arial';
+            ctx.fillText('시작 버튼을 클릭하세요', canvas.width/2 - 100, canvas.height/2 + 20);
+        }
+
+        // 시작 버튼 이벤트 리스너
+        startButton.addEventListener('click', startGame);
+
+        // 초기 화면 표시
+        drawInitialScreen();
+    </script>
+</body>
+</html>
